@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"go-final-project/pkg/db"
@@ -11,17 +12,18 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// Получение ID задачи из параметра
 	id := r.FormValue("id")
 	if id == "" {
-		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Не указан идентификатор"})
 		return
 	}
 
 	// Получение задачи из базы данных
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "Задача не найдена"})
+		log.Printf("Ошибка получения задачи с ID %s: %v", id, err)
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Задача не найдена"})
 		return
 	}
 
 	// Возвращение задачи в формате JSON
-	writeJSON(w, task)
+	writeJSON(w, http.StatusOK, task)
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,31 +15,33 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// Десериализация JSON в структуру Task
 	var task db.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJSON(w, map[string]string{"error": "Ошибка десериализации JSON"})
+		log.Printf("Ошибка десериализации JSON: %v", err)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Ошибка десериализации JSON"})
 		return
 	}
 
 	// Проверка наличия заголовка задачи
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "Не указан заголовок задачи"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Не указан заголовок задачи"})
 		return
 	}
 
 	// Проверка и корректировка даты
 	if err := checkDate(&task); err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	// Сохранение задачи в базу данных
 	id, err := db.AddTask(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "Ошибка добавления задачи в базу данных"})
+		log.Printf("Ошибка добавления задачи в базу данных: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Ошибка добавления задачи в базу данных"})
 		return
 	}
 
 	// Возвращение идентификатора созданной задачи
-	writeJSON(w, map[string]string{"id": strconv.FormatInt(id, 10)})
+	writeJSON(w, http.StatusOK, map[string]string{"id": strconv.FormatInt(id, 10)})
 }
 
 // checkDate проверяет корректность даты и корректирует её при необходимости
@@ -76,7 +79,8 @@ func checkDate(task *db.Task) error {
 }
 
 // writeJSON записывает данные в формате JSON в ответ
-func writeJSON(w http.ResponseWriter, data any) {
+func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }

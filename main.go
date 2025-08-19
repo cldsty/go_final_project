@@ -12,6 +12,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка инициализации базы данных: %v", err)
 	}
+	defer db.Close()
 
 	logger := log.New(os.Stdout, "server: ", log.LstdFlags)
 
